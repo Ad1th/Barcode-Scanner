@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Barcode Scanner</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/@zxing/library@0.21.3"></script>
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <h1>Barcode Scanner</h1>
+        <p>Scan barcodes using your mobile camera and get instant text output.</p>
+      </header>
+
+      <section class="camera-panel">
+        <div class="video-wrap">
+          <video id="preview" autoplay playsinline muted></video>
+          <div class="overlay" aria-hidden="true"></div>
+        </div>
+
+        <div class="controls">
+          <button id="startBtn" type="button">Start Scan</button>
+          <button id="stopBtn" type="button" disabled>Stop</button>
+          <button id="copyBtn" type="button" disabled>Copy Output</button>
+        </div>
+
+        <p id="status" class="status">Ready to scan.</p>
+      </section>
+
+      <section class="result-panel">
+        <h2>Decoded Text</h2>
+        <div id="result" class="result">No barcode detected yet.</div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

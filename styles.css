@@ -1,0 +1,154 @@
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --accent: #14b8a6;
+  --accent-2: #0ea5e9;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --danger: #f43f5e;
+  --success: #22c55e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: radial-gradient(circle at top right, #1e293b, var(--bg) 58%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app {
+  width: min(920px, 94vw);
+  margin: 24px auto;
+  display: grid;
+  gap: 20px;
+}
+
+.header {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(14, 165, 233, 0.18));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.5vw, 2.1rem);
+}
+
+.header p {
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.camera-panel,
+.result-panel {
+  background: rgba(17, 24, 39, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.video-wrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: #000;
+  aspect-ratio: 3 / 4;
+  max-height: 65vh;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.overlay::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(72vw, 280px);
+  height: min(32vw, 150px);
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(20, 184, 166, 0.85);
+  border-radius: 10px;
+  box-shadow: 0 0 0 100vmax rgba(2, 6, 23, 0.35);
+}
+
+.controls {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: 0;
+  color: #042f2e;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.status {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.status.success {
+  color: var(--success);
+}
+
+.result-panel h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.result {
+  min-height: 56px;
+  line-height: 1.5;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.45);
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .app {
+    margin: 12px auto;
+    gap: 14px;
+  }
+
+  .header,
+  .camera-panel,
+  .result-panel {
+    border-radius: 12px;
+    padding: 12px;
+  }
+}
