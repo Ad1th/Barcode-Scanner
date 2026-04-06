@@ -11,6 +11,23 @@ let scanning = false;
 let controls = null;
 let lastText = "";
 
+async function listVideoInputDevices() {
+  if (typeof codeReader.listVideoInputDevices === "function") {
+    return codeReader.listVideoInputDevices();
+  }
+
+  if (typeof ZXing?.BrowserCodeReader?.listVideoInputDevices === "function") {
+    return ZXing.BrowserCodeReader.listVideoInputDevices();
+  }
+
+  if (!navigator.mediaDevices?.enumerateDevices) {
+    throw new Error("Device enumeration is not supported in this browser.");
+  }
+
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter((device) => device.kind === "videoinput");
+}
+
 function setStatus(message, type = "") {
   statusEl.textContent = message;
   statusEl.className = `status ${type}`.trim();
@@ -39,7 +56,7 @@ async function startScanner() {
 
   try {
     setStatus("Requesting camera access...");
-    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    const devices = await listVideoInputDevices();
 
     if (!devices.length) {
       setStatus("No camera found on this device.", "error");
