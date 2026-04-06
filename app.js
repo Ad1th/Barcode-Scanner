@@ -5,17 +5,25 @@ const copyBtn = document.getElementById("copyBtn");
 const statusEl = document.getElementById("status");
 const resultEl = document.getElementById("result");
 
-const codeReader = new ZXing.BrowserMultiFormatReader();
+const scannerHints = new Map();
+scannerHints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+const scannerOptions = {
+  delayBetweenScanAttempts: 150,
+  delayBetweenScanSuccess: 300,
+  tryPlayVideoTimeout: 10000,
+};
+
+const codeReader = new ZXing.BrowserMultiFormatReader(
+  scannerHints,
+  scannerOptions,
+);
 
 let scanning = false;
 let controls = null;
 let lastText = "";
 
 async function listVideoInputDevices() {
-  if (typeof codeReader.listVideoInputDevices === "function") {
-    return codeReader.listVideoInputDevices();
-  }
-
   if (typeof ZXing?.BrowserCodeReader?.listVideoInputDevices === "function") {
     return ZXing.BrowserCodeReader.listVideoInputDevices();
   }
@@ -26,6 +34,27 @@ async function listVideoInputDevices() {
 
   const devices = await navigator.mediaDevices.enumerateDevices();
   return devices.filter((device) => device.kind === "videoinput");
+}
+
+function buildVideoConstraints(deviceId) {
+  const baseVideoConstraints = {
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+    facingMode: { ideal: "environment" },
+  };
+
+  if (deviceId) {
+    return {
+      video: {
+        ...baseVideoConstraints,
+        deviceId: { exact: deviceId },
+      },
+    };
+  }
+
+  return {
+    video: baseVideoConstraints,
+  };
 }
 
 function setStatus(message, type = "") {
@@ -56,44 +85,58 @@ async function startScanner() {
 
   try {
     setStatus("Requesting camera access...");
-    const devices = await listVideoInputDevices();
 
-    if (!devices.length) {
-      setStatus("No camera found on this device.", "error");
-      return;
-    }
-
-    const preferredDevice =
-      devices.find((d) => /back|rear|environment/i.test(d.label))?.deviceId ?? devices[0].deviceId;
+    const devices = await listVideoInputDevices().catch(() => []);
+    const preferredDevice = devices.find((d) =>
+      /back|rear|environment/i.test(d.label),
+    )?.deviceId;
+    const constraints = buildVideoConstraints(preferredDevice);
 
     scanning = true;
     setButtons(true);
-    setStatus("Camera active. Point at a barcode.");
+    setStatus(
+      preferredDevice
+        ? "Rear camera active. Point at a barcode."
+        : "Camera active. Point at a barcode.",
+    );
 
-    controls = await codeReader.decodeFromVideoDevice(preferredDevice, videoElement, (result, error) => {
-      if (result) {
-        const text = result.getText();
-        if (text && text !== lastText) {
-          setOutput(text);
-          setStatus(`Decoded (${result.getBarcodeFormat()})`, "success");
+    controls = await codeReader.decodeFromConstraints(
+      constraints,
+      videoElement,
+      (result, error) => {
+        if (result) {
+          const text = result.getText();
+          if (text && text !== lastText) {
+            setOutput(text);
+            setStatus(`Decoded (${result.getBarcodeFormat()})`, "success");
+          }
         }
-      }
 
-      if (error && !(error instanceof ZXing.NotFoundException)) {
-        setStatus(`Scanner error: ${error.message || "Unknown error"}`, "error");
-      }
-    });
+        if (error && !(error instanceof ZXing.NotFoundException)) {
+          setStatus(
+            `Scanner error: ${error.message || "Unknown error"}`,
+            "error",
+          );
+        }
+      },
+    );
   } catch (error) {
     scanning = false;
     controls = null;
     setButtons(false);
 
     if (error && /permission|denied/i.test(error.message || "")) {
-      setStatus("Camera permission denied. Please allow camera access and try again.", "error");
+      setStatus(
+        "Camera permission denied. Please allow camera access and try again.",
+        "error",
+      );
       return;
     }
 
-    setStatus(`Failed to start scanner: ${error.message || "Unknown error"}`, "error");
+    setStatus(
+      `Failed to start scanner: ${error.message || "Unknown error"}`,
+      "error",
+    );
   }
 }
 
@@ -119,7 +162,10 @@ async function copyOutput() {
     await navigator.clipboard.writeText(lastText);
     setStatus("Output copied to clipboard.", "success");
   } catch {
-    setStatus("Could not copy output. Clipboard may be blocked in this browser.", "error");
+    setStatus(
+      "Could not copy output. Clipboard may be blocked in this browser.",
+      "error",
+    );
   }
 }
 
