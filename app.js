@@ -73,6 +73,62 @@ function setButtons(active) {
   stopBtn.disabled = !active;
 }
 
+function getDecodedText(result) {
+  if (!result) {
+    return "";
+  }
+
+  if (typeof result.getText === "function") {
+    return result.getText() || "";
+  }
+
+  return result.text || "";
+}
+
+function getDecodedFormat(result) {
+  if (!result) {
+    return "";
+  }
+
+  if (typeof result.getBarcodeFormat === "function") {
+    return String(result.getBarcodeFormat());
+  }
+
+  return result.barcodeFormat ? String(result.barcodeFormat) : "";
+}
+
+async function startDecoding(constraints) {
+  try {
+    return await codeReader.decodeFromConstraints(
+      constraints,
+      videoElement,
+      onDecodeResult,
+    );
+  } catch (error) {
+    // Some devices accept constraints but decode more reliably with direct device selection.
+    return codeReader.decodeFromVideoDevice(
+      undefined,
+      videoElement,
+      onDecodeResult,
+    );
+  }
+}
+
+function onDecodeResult(result, error) {
+  if (result) {
+    const text = getDecodedText(result);
+    if (text && text !== lastText) {
+      setOutput(text);
+      const format = getDecodedFormat(result);
+      setStatus(format ? `Decoded (${format})` : "Decoded", "success");
+    }
+  }
+
+  if (error && !(error instanceof ZXing.NotFoundException)) {
+    setStatus(`Scanner error: ${error.message || "Unknown error"}`, "error");
+  }
+}
+
 async function startScanner() {
   if (scanning) {
     return;
@@ -100,26 +156,7 @@ async function startScanner() {
         : "Camera active. Point at a barcode.",
     );
 
-    controls = await codeReader.decodeFromConstraints(
-      constraints,
-      videoElement,
-      (result, error) => {
-        if (result) {
-          const text = result.getText();
-          if (text && text !== lastText) {
-            setOutput(text);
-            setStatus(`Decoded (${result.getBarcodeFormat()})`, "success");
-          }
-        }
-
-        if (error && !(error instanceof ZXing.NotFoundException)) {
-          setStatus(
-            `Scanner error: ${error.message || "Unknown error"}`,
-            "error",
-          );
-        }
-      },
-    );
+    controls = await startDecoding(constraints);
   } catch (error) {
     scanning = false;
     controls = null;
