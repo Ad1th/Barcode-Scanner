@@ -1,72 +1,14 @@
-const videoElement = document.getElementById("preview");
+const readerElementId = "reader";
 const startBtn = document.getElementById("startBtn");
 const stopBtn = document.getElementById("stopBtn");
 const copyBtn = document.getElementById("copyBtn");
 const statusEl = document.getElementById("status");
 const resultEl = document.getElementById("result");
 
-const scannerHints = new Map();
-scannerHints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-scannerHints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-  ZXing.BarcodeFormat.EAN_13,
-  ZXing.BarcodeFormat.EAN_8,
-  ZXing.BarcodeFormat.UPC_A,
-  ZXing.BarcodeFormat.UPC_E,
-  ZXing.BarcodeFormat.CODE_128,
-  ZXing.BarcodeFormat.CODE_39,
-  ZXing.BarcodeFormat.ITF,
-  ZXing.BarcodeFormat.CODABAR,
-  ZXing.BarcodeFormat.QR_CODE,
-]);
-
-const scannerOptions = {
-  delayBetweenScanAttempts: 150,
-  delayBetweenScanSuccess: 300,
-  tryPlayVideoTimeout: 10000,
-};
-
-const codeReader = new ZXing.BrowserMultiFormatReader(
-  scannerHints,
-  scannerOptions,
-);
+let scanner = null;
 
 let scanning = false;
-let controls = null;
 let lastText = "";
-
-async function listVideoInputDevices() {
-  if (typeof ZXing?.BrowserCodeReader?.listVideoInputDevices === "function") {
-    return ZXing.BrowserCodeReader.listVideoInputDevices();
-  }
-
-  if (!navigator.mediaDevices?.enumerateDevices) {
-    throw new Error("Device enumeration is not supported in this browser.");
-  }
-
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  return devices.filter((device) => device.kind === "videoinput");
-}
-
-function buildVideoConstraints(deviceId) {
-  const baseVideoConstraints = {
-    width: { ideal: 1280 },
-    height: { ideal: 720 },
-    facingMode: { ideal: "environment" },
-  };
-
-  if (deviceId) {
-    return {
-      video: {
-        ...baseVideoConstraints,
-        deviceId: { exact: deviceId },
-      },
-    };
-  }
-
-  return {
-    video: baseVideoConstraints,
-  };
-}
 
 function setStatus(message, type = "") {
   statusEl.textContent = message;
@@ -84,60 +26,39 @@ function setButtons(active) {
   stopBtn.disabled = !active;
 }
 
-function getDecodedText(result) {
-  if (!result) {
-    return "";
-  }
-
-  if (typeof result.getText === "function") {
-    return result.getText() || "";
-  }
-
-  return result.text || "";
+function getScannerConfig() {
+  return {
+    fps: 12,
+    qrbox: (viewfinderWidth, viewfinderHeight) => {
+      const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+      const size = Math.floor(minEdge * 0.75);
+      return { width: size, height: Math.floor(size * 0.55) };
+    },
+    aspectRatio: 1.3333,
+    experimentalFeatures: {
+      useBarCodeDetectorIfSupported: true,
+    },
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.QR_CODE,
+    ],
+  };
 }
 
-function getDecodedFormat(result) {
-  if (!result) {
-    return "";
+function onDecodeSuccess(decodedText, decodedResult) {
+  if (!decodedText || decodedText === lastText) {
+    return;
   }
 
-  if (typeof result.getBarcodeFormat === "function") {
-    return String(result.getBarcodeFormat());
-  }
-
-  return result.barcodeFormat ? String(result.barcodeFormat) : "";
-}
-
-async function startDecoding(constraints) {
-  try {
-    return await codeReader.decodeFromConstraints(
-      constraints,
-      videoElement,
-      onDecodeResult,
-    );
-  } catch (error) {
-    // Some devices accept constraints but decode more reliably with direct device selection.
-    return codeReader.decodeFromVideoDevice(
-      undefined,
-      videoElement,
-      onDecodeResult,
-    );
-  }
-}
-
-function onDecodeResult(result, error) {
-  if (result) {
-    const text = getDecodedText(result);
-    if (text && text !== lastText) {
-      setOutput(text);
-      const format = getDecodedFormat(result);
-      setStatus(format ? `Decoded (${format})` : "Decoded", "success");
-    }
-  }
-
-  if (error && !(error instanceof ZXing.NotFoundException)) {
-    setStatus(`Scanner error: ${error.message || "Unknown error"}`, "error");
-  }
+  setOutput(decodedText);
+  const formatName = decodedResult?.result?.format?.formatName;
+  setStatus(formatName ? `Decoded (${formatName})` : "Decoded", "success");
 }
 
 async function startScanner() {
@@ -150,30 +71,68 @@ async function startScanner() {
     return;
   }
 
+  if (typeof Html5Qrcode !== "function") {
+    setStatus(
+      "Scanner library failed to load. Refresh and try again.",
+      "error",
+    );
+    return;
+  }
+
   try {
     setStatus("Requesting camera access...");
 
-    const devices = await listVideoInputDevices().catch(() => []);
-    const preferredDevice = devices.find((d) =>
-      /back|rear|environment/i.test(d.label),
-    )?.deviceId;
-    const constraints = buildVideoConstraints(preferredDevice);
+    scanner = new Html5Qrcode(readerElementId, {
+      verbose: false,
+    });
+
+    const cameraConfig = {
+      facingMode: { exact: "environment" },
+    };
 
     scanning = true;
     setButtons(true);
-    setStatus(
-      preferredDevice
-        ? "Rear camera active. Point at a barcode."
-        : "Camera active. Point at a barcode.",
-    );
+    setStatus("Rear camera active. Point at a barcode.");
 
-    controls = await startDecoding(constraints);
+    await scanner.start(
+      cameraConfig,
+      getScannerConfig(),
+      onDecodeSuccess,
+      () => {},
+    );
   } catch (error) {
+    try {
+      // Fallback for devices that reject exact facingMode constraints.
+      if (scanner) {
+        await scanner.start(
+          { facingMode: "environment" },
+          getScannerConfig(),
+          onDecodeSuccess,
+          () => {},
+        );
+        scanning = true;
+        setButtons(true);
+        setStatus("Camera active. Point at a barcode.");
+        return;
+      }
+    } catch (fallbackError) {
+      error = fallbackError;
+    }
+
+    if (scanner) {
+      try {
+        await scanner.stop();
+      } catch {
+        // no-op
+      }
+      scanner.clear();
+      scanner = null;
+    }
+
     scanning = false;
-    controls = null;
     setButtons(false);
 
-    if (error && /permission|denied/i.test(error.message || "")) {
+    if (/permission|denied|notallowed/i.test(error?.message || "")) {
       setStatus(
         "Camera permission denied. Please allow camera access and try again.",
         "error",
@@ -182,22 +141,32 @@ async function startScanner() {
     }
 
     setStatus(
-      `Failed to start scanner: ${error.message || "Unknown error"}`,
+      `Failed to start scanner: ${error?.message || "Unknown error"}`,
       "error",
     );
   }
 }
 
-function stopScanner() {
-  if (!scanning) {
+async function stopScanner() {
+  if (!scanning || !scanner) {
     return;
   }
 
-  scanning = false;
-  controls?.stop();
-  controls = null;
-  codeReader.reset();
-  setButtons(false);
+  try {
+    await scanner.stop();
+    scanner.clear();
+  } catch (error) {
+    setStatus(
+      `Failed to stop scanner: ${error?.message || "Unknown error"}`,
+      "error",
+    );
+    return;
+  } finally {
+    scanner = null;
+    scanning = false;
+    setButtons(false);
+  }
+
   setStatus("Scanner stopped.");
 }
 
@@ -218,7 +187,11 @@ async function copyOutput() {
 }
 
 startBtn.addEventListener("click", startScanner);
-stopBtn.addEventListener("click", stopScanner);
+stopBtn.addEventListener("click", () => {
+  void stopScanner();
+});
 copyBtn.addEventListener("click", copyOutput);
 
-window.addEventListener("beforeunload", stopScanner);
+window.addEventListener("beforeunload", () => {
+  void stopScanner();
+});

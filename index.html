@@ -5,18 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Barcode Scanner</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://unpkg.com/@zxing/library@0.21.3"></script>
+    <script src="https://unpkg.com/html5-qrcode" defer></script>
   </head>
   <body>
     <main class="app">
       <header class="header">
         <h1>Barcode Scanner</h1>
-        <p>Scan barcodes using your mobile camera and get instant text output.</p>
+        <p>
+          Scan barcodes using your mobile camera and get instant text output.
+        </p>
       </header>
 
       <section class="camera-panel">
         <div class="video-wrap">
-          <video id="preview" autoplay playsinline muted></video>
+          <div id="reader"></div>
           <div class="overlay" aria-hidden="true"></div>
         </div>
 
