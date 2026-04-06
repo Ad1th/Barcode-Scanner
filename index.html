@@ -26,6 +26,9 @@
           <button id="startBtn" type="button">Start Scan</button>
           <button id="stopBtn" type="button" disabled>Stop</button>
           <button id="copyBtn" type="button" disabled>Copy Output</button>
+          <button id="code128ToggleBtn" type="button" class="format-toggle">
+            CODE_128 Only: OFF
+          </button>
         </div>
 
         <p id="status" class="status">Ready to scan.</p>
@@ -34,6 +37,10 @@
       <section class="result-panel">
         <h2>Decoded Text</h2>
         <div id="result" class="result">No barcode detected yet.</div>
+        <h3>Decoded Details</h3>
+        <pre id="resultDetails" class="result-details">
+No scan metadata yet.</pre
+        >
       </section>
     </main>
 

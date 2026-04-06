@@ -127,6 +127,16 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.format-toggle {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+  transition: all 0.2s ease;
+}
+
+.format-toggle.active {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.5);
+}
+
 .status {
   margin: 12px 0 0;
   color: var(--muted);
@@ -145,6 +155,13 @@ button:disabled {
   font-size: 1.1rem;
 }
 
+.result-panel h3 {
+  margin: 14px 0 8px;
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .result {
   min-height: 56px;
   line-height: 1.5;
@@ -153,6 +170,21 @@ button:disabled {
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(2, 6, 23, 0.45);
   word-break: break-word;
+}
+
+.result-details {
+  min-height: 120px;
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.45);
+  color: #cbd5e1;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 
 @media (max-width: 640px) {
