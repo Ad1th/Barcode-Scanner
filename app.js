@@ -7,6 +7,17 @@ const resultEl = document.getElementById("result");
 
 const scannerHints = new Map();
 scannerHints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+scannerHints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+  ZXing.BarcodeFormat.EAN_13,
+  ZXing.BarcodeFormat.EAN_8,
+  ZXing.BarcodeFormat.UPC_A,
+  ZXing.BarcodeFormat.UPC_E,
+  ZXing.BarcodeFormat.CODE_128,
+  ZXing.BarcodeFormat.CODE_39,
+  ZXing.BarcodeFormat.ITF,
+  ZXing.BarcodeFormat.CODABAR,
+  ZXing.BarcodeFormat.QR_CODE,
+]);
 
 const scannerOptions = {
   delayBetweenScanAttempts: 150,
